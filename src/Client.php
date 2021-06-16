@@ -116,6 +116,51 @@ class Client{
         return $return;
     }
 
+	/**
+	 * Retrieves array of products.
+	 *
+	 * @param $chunkSize
+	 * @return Product[]
+	 */
+	public function getProductsByChunk( $chunkSize ): array
+	{
+		$offset = 1;
+		$result = [];
+
+		$response = function( $offset ) use ( $chunkSize ) {
+
+			$items = collect( [] );
+
+			collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->map( function( $item ) use ( $items ) {
+				$items->push( new Product( $item ) );
+			} );
+			$count = count( $items );
+			return (object) [
+				'items' => $items,
+				'count' => $count,
+			];
+
+		};
+		do {
+
+			$resp = $response( $offset );
+
+			$countResults = count( $resp->items );
+			if ( $countResults === 0 ) {
+				break;
+			}
+			foreach ( $resp->items as $res ) {
+				$result[] = $res;
+			}
+
+			unset( $resp );
+
+			$offset += $chunkSize;
+
+		} while ( $countResults === $chunkSize );
+
+		return $result;
+	}
     /**
      * Retrieves a product.
      * 
