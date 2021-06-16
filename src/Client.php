@@ -10,6 +10,7 @@ namespace inkpro\smartwebapi;
 use DateInterval;
 use DateTime;
 use Exception;
+use Generator;
 use SoapClient;
 use SoapFault;
 
@@ -117,27 +118,27 @@ class Client{
     }
 
 	/**
-	 * Retrieves array of products.
+	 * It will iterate over all pages until it does not receive empty response,
+	 * Return a Generator that you' handle first before quering the next offset
 	 *
-	 * @param $chunkSize
-	 * @return Product[]
+	 * @param int $chunkSize
+	 *
+	 * @return Generator
 	 */
-	public function getProductsByChunk( $chunkSize ): array
+	public function getProductsByChunk( int $chunkSize = 50)
 	{
 		$offset = 1;
-		$result = [];
+		$items = collect();
 
-		$response = function( $offset ) use ( $chunkSize ) {
+		$response = function( $offset ) use ( $chunkSize, $items ) {
 
-			$items = collect( [] );
+			collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) use ( $items ) {
 
-			collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->map( function( $item ) use ( $items ) {
-				$items->push( new Product( $item ) );
+				$items->push( $item );
 			} );
-			$count = count( $items );
+
 			return (object) [
 				'items' => $items,
-				'count' => $count,
 			];
 
 		};
@@ -149,8 +150,8 @@ class Client{
 			if ( $countResults === 0 ) {
 				break;
 			}
-			foreach ( $resp->items as $res ) {
-				$result[] = $res;
+			foreach ( $resp->items as $result ) {
+				yield $result;
 			}
 
 			unset( $resp );
@@ -159,8 +160,8 @@ class Client{
 
 		} while ( $countResults === $chunkSize );
 
-		return $result;
 	}
+
     /**
      * Retrieves a product.
      * 
