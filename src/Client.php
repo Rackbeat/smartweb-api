@@ -127,14 +127,12 @@ class Client{
 	 */
 	public function getProductsByChunk( int $chunkSize = 50)
 	{
-		$offset = 1;
-		$items = collect();
+		$offset = 0;
 
-		$response = function( $offset ) use ( $chunkSize, $items ) {
+		$response = function( $offset ) use ( $chunkSize ) {
 
-			collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) use ( $items ) {
-
-				$items->push( $item );
+			$items = collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) {
+				return $item;
 			} );
 
 			return (object) [
