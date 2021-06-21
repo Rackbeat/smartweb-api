@@ -125,21 +125,37 @@ class Client{
 	 *
 	 * @return Generator
 	 */
-	public function getProductsByChunk( int $chunkSize = 50)
+	public function getProductsByChunk( int $chunkSize = 50, $lastSyncDate = null, $endDate = null )
 	{
 		$offset = 0;
 
-		$response = function( $offset ) use ( $chunkSize ) {
+		if ( $lastSyncDate ) {
+			$response = function( $offset ) use ( $lastSyncDate, $endDate ) {
+				$endDate = Carbon::now()->toDateTimeString();
+				$items = collect( $this->callApi( 'Product_GetByUpdatedDate', [ 'Start' => $lastSyncDate, 'End' => $endDate ] ) )->each( function( $item ) {
 
-			$items = collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) {
-				return $item;
-			} );
+					return $item;
+				} );
 
-			return (object) [
-				'items' => $items,
-			];
+				return (object) [
+					'items' => $items,
+				];
 
-		};
+			};
+		} else {
+			$response = function( $offset ) use ( $chunkSize ) {
+
+				$items = collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) {
+
+					return $item;
+				} );
+
+				return (object) [
+					'items' => $items,
+				];
+
+			};
+		}
 		do {
 
 			$resp = $response( $offset );
