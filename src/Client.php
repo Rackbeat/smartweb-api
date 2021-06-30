@@ -10,6 +10,7 @@ namespace inkpro\smartwebapi;
 use DateInterval;
 use DateTime;
 use Exception;
+use Generator;
 use SoapClient;
 use SoapFault;
 
@@ -115,6 +116,65 @@ class Client{
         }
         return $return;
     }
+
+	/**
+	 * It will iterate over all pages until it does not receive empty response,
+	 * Return a Generator that you' handle first before quering the next offset
+	 *
+	 * @param int $chunkSize
+	 *
+	 * @return Generator
+	 */
+	public function getProductsByChunk( int $chunkSize = 50, $lastSyncDate = null, $endDate = null )
+	{
+		$offset = 0;
+
+		if ( $lastSyncDate ) {
+			$response = function( $offset ) use ( $lastSyncDate, $endDate ) {
+				$endDate = Carbon::now()->toDateTimeString();
+				$items = collect( $this->callApi( 'Product_GetByUpdatedDate', [ 'Start' => $lastSyncDate, 'End' => $endDate ] ) )->each( function( $item ) {
+
+					return $item;
+				} );
+
+				return (object) [
+					'items' => $items,
+				];
+
+			};
+		} else {
+			$response = function( $offset ) use ( $chunkSize ) {
+
+				$items = collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) {
+
+					return $item;
+				} );
+
+				return (object) [
+					'items' => $items,
+				];
+
+			};
+		}
+		do {
+
+			$resp = $response( $offset );
+
+			$countResults = count( $resp->items );
+			if ( $countResults === 0 ) {
+				break;
+			}
+			foreach ( $resp->items as $result ) {
+				yield $result;
+			}
+
+			unset( $resp );
+
+			$offset += $chunkSize;
+
+		} while ( $countResults === $chunkSize );
+
+	}
 
     /**
      * Retrieves a product.
