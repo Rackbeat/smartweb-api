@@ -132,11 +132,11 @@ class Client{
 
 		if ( $lastSyncDate ) {
 			$response = function( $offset ) use ( $lastSyncDate, $endDate ) {
-				$endDate = Carbon::now()->toDateTimeString();
-				$items = collect( $this->callApi( 'Product_GetByUpdatedDate', [ 'Start' => $lastSyncDate, 'End' => $endDate ] ) )->each( function( $item ) {
-
-					return $item;
-				} );
+				$endDate = Carbon::now()->toDateTimeString();				
+				$items = collect($this->callApi( 'Product_GetByUpdatedDate', [ 'Start' => $lastSyncDate, 'End' => $endDate ]))
+					    ->map( function( $item ) {
+						return new Product($item);
+					    });
 
 				return (object) [
 					'items' => $items,
@@ -144,12 +144,11 @@ class Client{
 
 			};
 		} else {
-			$response = function( $offset ) use ( $chunkSize ) {
-
-				$items = collect( $this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize ) ) )->each( function( $item ) {
-
-					return $item;
-				} );
+			$response = function( $offset ) use ( $chunkSize ) {				
+				$items = collect($this->callApi( 'Product_GetAllWithLimit', array( 'Start' => $offset, 'Length' => $chunkSize )))
+					    ->map( function( $item ) {
+						return new Product($item);
+					    });
 
 				return (object) [
 					'items' => $items,
