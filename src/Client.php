@@ -13,6 +13,7 @@ use Exception;
 use Generator;
 use SoapClient;
 use SoapFault;
+use Carbon\Carbon;
 
 /**
  * Wrapper class for communication with the smartweb API.
