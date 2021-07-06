@@ -425,7 +425,8 @@ class Client{
      */
     public function getOrders(DateTime $start, DateTime $end, $status=['1', '2', '3', '4', '6', '7', '8']): array
     {
-	$dateFormat = 'Y-m-d h:i:s';
+	$dateFormat = 'Y-m-d H:i:s';
+	
         $options = array(
             'Start' =>$start->format($dateFormat),
             'End' =>$end->format($dateFormat),
